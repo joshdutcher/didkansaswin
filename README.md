@@ -2,6 +2,8 @@
 
 A minimal website that displays the result of the most recent Kansas Jayhawks men's basketball game in simple YES/NO format, inspired by diddukewin.com.
 
+Currently lives at https://didkansaswin-production.up.railway.app/
+
 ## Features
 
 - **Simple Display**: Shows YES/NO for the most recent game result
