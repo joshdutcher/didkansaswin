@@ -1,0 +1,86 @@
+<html>
+<head>
+    <title>Did Kansas Win?</title>
+    <meta content=http://didkansaswin.com/ property=og:url>
+    <style>
+        #middle{
+            text-align:center;
+            margin-top:15%;
+        }
+
+        p{
+            font-family: Arial, sans-serif;
+        }
+
+        p.yes{
+            font-size:120pt;
+            font-weight: bold;
+            color: green;
+        }
+
+        p.no{
+            font-size:120pt;
+            font-weight: bold;
+            color: red;
+        }
+
+        p.notyet{
+            font-size:120pt;
+            font-weight: bold;
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body>
+    <div id=middle>
+        <p id="status" class=""> Loading... </p>
+        <p id="score"> </p>
+    </div>
+
+    <script>
+        let isLive = false;
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                const statusP = document.getElementById('status');
+                const scoreP = document.getElementById('score');
+
+                if (data.isLive && data.liveScore) {
+                    // Live game in progress
+                    statusP.className = 'notyet';
+                    statusP.textContent = 'LIVE';
+                    scoreP.textContent = data.liveScore;
+                    isLive = true;
+                } else if (data.didWin !== null && data.scoreLink) {
+                    // Game completed
+                    statusP.className = data.didWin ? 'yes' : 'no';
+                    statusP.textContent = data.didWin ? 'YES' : 'NO';
+                    scoreP.innerHTML = `<a href="${data.scoreLink.url}" target="_blank">${data.scoreLink.text}</a>`;
+                    isLive = false;
+                } else {
+                    // Loading/Error state
+                    statusP.className = 'notyet';
+                    statusP.textContent = 'LOADING...';
+                    scoreP.textContent = '';
+                    isLive = false;
+                }
+
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                document.getElementById('status').textContent = 'ERROR';
+                document.getElementById('score').textContent = '';
+            }
+        }
+
+        checkStatus();
+        
+        // Check every 30 seconds if live, otherwise every 5 minutes
+        setInterval(() => {
+            checkStatus();
+        }, isLive ? 30000 : 300000);
+    </script>
+</body>
+</html>
