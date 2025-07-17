@@ -11,6 +11,19 @@ A minimal website that displays the result of the most recent Kansas Jayhawks me
 - **Tournament Coverage**: Includes both regular season and NCAA tournament games
 - **Minimal Design**: Clean, centered layout matching the original diddukewin.com style
 
+## How It Works
+
+1. **Daily Schedule Updates**: Every day at 8 AM, the app fetches the Kansas basketball schedule
+2. **Game Monitoring**: Starting at tip-off time, checks every 5 minutes for live game updates
+3. **Result Display**: Shows YES/NO based on whether Kansas won, with score and ESPN link
+4. **Off-Season Handling**: During off-season, displays the final game result from the previous season
+
+## Data Sources
+
+- **Primary**: ESPN API (https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball)
+- **Coverage**: Regular season and postseason (NCAA tournament) games
+- **Game Links**: ESPN game recaps for official source
+
 ## Setup
 
 1. **Install dependencies:**
@@ -24,48 +37,6 @@ A minimal website that displays the result of the most recent Kansas Jayhawks me
    ```
 
    Visit `http://localhost:3000`
-
-## Deployment
-
-### Option 1: Vercel (Recommended)
-
-1. Install Vercel CLI:
-   ```bash
-   npm install -g vercel
-   ```
-
-2. Deploy:
-   ```bash
-   vercel
-   ```
-
-3. Follow the prompts:
-   - Set up and deploy? `Y`
-   - Which scope? (select your account)
-   - Link to existing project? `N`
-   - Project name: `didkansaswin`
-   - In which directory? `./`
-   - Want to override settings? `N`
-
-### Option 2: Railway
-
-1. Create account at [railway.app](https://railway.app)
-2. Click "New Project" → "Deploy from GitHub repo"
-3. Connect your GitHub account and select your repository
-4. Railway will automatically detect Node.js and deploy
-
-## How It Works
-
-1. **Daily Schedule Updates**: Every day at 8 AM, the app fetches the Kansas basketball schedule
-2. **Game Monitoring**: Starting at tip-off time, checks every 5 minutes for live game updates
-3. **Result Display**: Shows YES/NO based on whether Kansas won, with score and ESPN link
-4. **Off-Season Handling**: During off-season, displays the final game result from the previous season
-
-## Data Sources
-
-- **Primary**: ESPN API (https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball)
-- **Coverage**: Regular season and postseason (NCAA tournament) games
-- **Game Links**: ESPN game recaps for official source
 
 ## File Structure
 
@@ -84,7 +55,7 @@ A minimal website that displays the result of the most recent Kansas Jayhawks me
 
 - **Kansas Team ID**: 2305 (ESPN API identifier)
 - **Season Types**: Fetches both regular season (2) and postseason (3) games
-- **Live Game States**: 
+- **Live Game States**:
   - `final`: Shows YES/NO with final score
   - `in_progress`: Shows LIVE with current score (yellow)
   - `scheduled`: Shows upcoming games during season
@@ -93,12 +64,6 @@ A minimal website that displays the result of the most recent Kansas Jayhawks me
 ## Environment Variables
 
 No environment variables required - the app works out of the box!
-
-## Troubleshooting
-
-- **Loading message**: App is fetching data from ESPN API
-- **API errors**: ESPN API is generally reliable, check console logs for details
-- **Deployment issues**: Make sure Node.js version is 18+ (check `engines` in package.json)
 
 ## License
 
