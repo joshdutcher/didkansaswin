@@ -30,6 +30,15 @@ function getCurrentSeason() {
   return year;  // Nov-Dec: use current year
 }
 
+function getSeasonTypeDescription(seasonType) {
+  switch (seasonType) {
+    case 1: return 'preseason';
+    case 2: return 'regular season';
+    case 3: return 'postseason';
+    default: return 'unknown';
+  }
+}
+
 function getMonthFormat(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -57,7 +66,7 @@ async function fetchKansasSchedule(season) {
       const data = response.data;
 
       if (!data.events || data.events.length === 0) {
-        console.log(`No games found for season ${season} seasontype ${seasonType}`);
+        console.log(`No games found for season ${season} seasontype ${seasonType} (${getSeasonTypeDescription(seasonType)})`);
         continue;
       }
 
@@ -121,9 +130,9 @@ async function fetchKansasSchedule(season) {
         }
       }
       
-      console.log(`Found ${data.events.length} games for season ${season} seasontype ${seasonType}`);
+      console.log(`Found ${data.events.length} games for season ${season} seasontype ${seasonType} (${getSeasonTypeDescription(seasonType)})`);
     } catch (error) {
-      console.error(`Error fetching Kansas schedule for season ${season} seasontype ${seasonType} (${scheduleUrl}):`, error.message);
+      console.error(`Error fetching Kansas schedule for season ${season} seasontype ${seasonType} (${getSeasonTypeDescription(seasonType)}) (${scheduleUrl}):`, error.message);
       if (error.response) {
         console.log(`Error response status: ${error.response.status}`);
         console.log(`Error response data:`, error.response.data);
@@ -280,6 +289,10 @@ function startGameMonitoring() {
     }, 5 * 60 * 1000); // 5 minutes
   }
 }
+
+app.get('/about', (req, res) => {
+  res.sendFile(__dirname + '/public/about.html');
+});
 
 app.get('/api/status', async (req, res) => {
   startGameMonitoring();

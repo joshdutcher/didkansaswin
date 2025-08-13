@@ -1,118 +1,85 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f0f0f0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-}
-
-.container {
+/* Global Styles */
+#middle {
     text-align: center;
-    background: white;
-    padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    max-width: 500px;
-    width: 90%;
+    margin-top: 15%;
 }
 
-h1 {
-    color: #333;
-    margin-bottom: 30px;
-    font-size: 2.5em;
+p {
+    font-family: Arial, sans-serif;
 }
 
-.result {
-    margin: 40px 0;
-}
-
-.answer {
-    font-size: 6em;
+/* Game Status Styles */
+p.yes {
+    font-size: 120pt;
     font-weight: bold;
-    margin-bottom: 20px;
+    color: green;
 }
 
-.answer.yes {
-    color: #28a745;
+p.no {
+    font-size: 120pt;
+    font-weight: bold;
+    color: red;
 }
 
-.answer.no {
-    color: #dc3545;
+p.notyet {
+    font-size: 120pt;
+    font-weight: bold;
+    color: #FFD700;
 }
 
-.answer.pending {
-    color: #6c757d;
-    font-size: 3em;
-}
-
-.answer.error {
-    color: #dc3545;
-    font-size: 2em;
-}
-
-.loading {
-    font-size: 2em;
-    color: #6c757d;
-}
-
-.score {
-    font-size: 2em;
+/* Navigation Links */
+#about-link {
     margin-top: 20px;
+    font-size: 14pt;
 }
 
-.score a {
-    color: #007bff;
+#about-link a {
+    color: #666;
     text-decoration: none;
-    font-weight: bold;
 }
 
-.score a:hover {
+#about-link a:hover {
     text-decoration: underline;
 }
 
-
-
-.footer {
+#back-link {
     margin-top: 40px;
-    color: #6c757d;
-    font-size: 0.9em;
+    font-size: 14pt;
 }
 
-.footer p {
-    margin: 5px 0;
+#back-link a {
+    color: #666;
+    text-decoration: none;
 }
 
-/* Kansas colors theme */
-.container {
-    border-top: 4px solid #0051ba;
+#back-link a:hover {
+    text-decoration: underline;
 }
 
-h1 {
-    color: #0051ba;
+/* About Page Content */
+.content {
+    font-size: 18pt;
+    color: #333;
+    max-width: 600px;
+    margin: 0 auto 20px auto;
+    line-height: 1.4;
+    text-align: left;
 }
 
-/* Responsive design */
+/* Responsive Design */
 @media (max-width: 600px) {
-    .container {
-        padding: 20px;
+    p.yes,
+    p.no,
+    p.notyet {
+        font-size: 80pt;
     }
 
-    h1 {
-        font-size: 2em;
+    .content {
+        font-size: 16pt;
+        max-width: 90%;
     }
 
-    .answer {
-        font-size: 4em;
-    }
-
-    .score {
-        font-size: 1.5em;
-    }
-
-    .next-game {
-        font-size: 1.2em;
+    #middle {
+        margin-top: 10%;
     }
 }
