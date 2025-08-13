@@ -30,35 +30,18 @@ p.notyet {
 /* Navigation Links */
 #about-link {
     margin-top: 20px;
-    font-size: 14pt;
 }
 
 #about-link a {
     color: #666;
-    text-decoration: none;
-}
-
-#about-link a:hover {
-    text-decoration: underline;
 }
 
 #back-link {
     margin-top: 40px;
-    font-size: 14pt;
-}
-
-#back-link a {
-    color: #666;
-    text-decoration: none;
-}
-
-#back-link a:hover {
-    text-decoration: underline;
 }
 
 /* About Page Content */
 .content {
-    font-size: 18pt;
     color: #333;
     max-width: 600px;
     margin: 0 auto 20px auto;
@@ -68,6 +51,7 @@ p.notyet {
 
 /* Responsive Design */
 @media (max-width: 600px) {
+
     p.yes,
     p.no,
     p.notyet {
