@@ -1,14 +1,14 @@
 <html>
 <head>
-    <title>Did Kansas Win?</title>
-    <meta content=https://www.didkansaswin.com/ property=og:url>
+    <title>Did Kansas Win? - Football</title>
+    <meta content=https://www.didkansaswin.com/football property=og:url>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id=middle>
         <p id="status" class=""> Loading... </p>
         <p id="score"> </p>
-        <p id="nav-links"><a href="/football">football</a> | <a href="/about">about</a></p>
+        <p id="nav-links"><a href="/">basketball</a> | <a href="/about">about</a></p>
     </div>
 
     <script>
@@ -16,7 +16,7 @@
 
         async function checkStatus() {
             try {
-                const response = await fetch('/api/status');
+                const response = await fetch('/api/status?sport=football');
                 const data = await response.json();
 
                 const statusP = document.getElementById('status');

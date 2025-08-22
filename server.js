@@ -3,31 +3,78 @@ const axios = require('axios');
 const cron = require('node-cron');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3050;
 
 app.use(express.static('public'));
 
-let gameState = {
+// Dual sport state management
+let basketballState = {
   lastGame: null,
   nextGame: null,
   isMonitoring: false,
   lastUpdated: null
 };
 
-const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball';
-const KANSAS_TEAM_ID = '2305';
+let footballState = {
+  lastGame: null,
+  nextGame: null,
+  isMonitoring: false,
+  lastUpdated: null
+};
 
-function getCurrentSeason() {
+// Sport configuration
+const SPORTS_CONFIG = {
+  basketball: {
+    apiBase: 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball',
+    teamId: '2305',
+    seasonMonths: [11, 12, 1, 2, 3, 4], // Nov-Apr
+    espnUrlPrefix: 'mens-college-basketball'
+  },
+  football: {
+    apiBase: 'https://site.api.espn.com/apis/site/v2/sports/football/college-football',
+    teamId: '2305',
+    seasonMonths: [8, 9, 10, 11, 12, 1], // Aug-Jan
+    espnUrlPrefix: 'college-football'
+  }
+};
+
+// Helper functions
+function getSportConfig(sport) {
+  return SPORTS_CONFIG[sport] || SPORTS_CONFIG.basketball;
+}
+
+function getSportState(sport) {
+  return sport === 'football' ? footballState : basketballState;
+}
+
+function setSportState(sport, state) {
+  if (sport === 'football') {
+    footballState = { ...footballState, ...state };
+  } else {
+    basketballState = { ...basketballState, ...state };
+  }
+}
+
+function getCurrentSeason(sport = 'basketball') {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
   
-  // Basketball season spans two calendar years (e.g., 2023-24 season)
-  // ESPN API uses the starting year (2023 for 2023-24 season)
-  if (month >= 1 && month <= 10) {
+  if (sport === 'football') {
+    // Football season: Aug-Jan spans calendar years
+    // ESPN API uses the starting year (2025 for 2025-26 season)
+    if (month >= 8) {
+      return year;  // Aug-Dec: use current year
+    }
+    return year - 1;  // Jan-July: use previous year
+  } else {
+    // Basketball season: Nov-Apr spans calendar years  
+    // ESPN API uses the starting year (2024 for 2024-25 season)
+    if (month >= 11) {
+      return year;  // Nov-Dec: use current year
+    }
     return year - 1;  // Jan-Oct: use previous year
   }
-  return year;  // Nov-Dec: use current year
 }
 
 function getSeasonTypeDescription(seasonType) {
@@ -45,19 +92,21 @@ function getMonthFormat(date) {
   return `${year}/${month}`;
 }
 
-function isBasketballSeason() {
+function isInSeason(sport = 'basketball') {
   const month = new Date().getMonth() + 1;
-  return month >= 11 || month <= 4;
+  const config = getSportConfig(sport);
+  return config.seasonMonths.includes(month);
 }
 
-async function fetchKansasSchedule(season) {
+async function fetchKansasSchedule(sport, season) {
+  const config = getSportConfig(sport);
   let allGames = [];
   
   // Fetch both regular season (2) and postseason (3) games
   const seasonTypes = [2, 3]; // Regular season and postseason
   
   for (const seasonType of seasonTypes) {
-    const scheduleUrl = `${ESPN_API}/teams/${KANSAS_TEAM_ID}/schedule?season=${season}&seasontype=${seasonType}`;
+    const scheduleUrl = `${config.apiBase}/teams/${config.teamId}/schedule?season=${season}&seasontype=${seasonType}`;
     console.log(`Requesting: ${scheduleUrl}`);
     
     try {
@@ -144,26 +193,27 @@ async function fetchKansasSchedule(season) {
   return allGames.sort((a, b) => a.startTimeEpoch - b.startTimeEpoch);
 }
 
-async function updateSchedule() {
-  console.log('Updating Kansas schedule...');
-  console.log(`Basketball season: ${isBasketballSeason()}`);
+async function updateSchedule(sport = 'basketball') {
+  console.log(`Updating Kansas ${sport} schedule...`);
+  console.log(`${sport} season: ${isInSeason(sport)}`);
 
   let allGames = [];
-  const currentSeason = getCurrentSeason();
+  const currentSeason = getCurrentSeason(sport);
+  const gameState = getSportState(sport);
 
-  if (isBasketballSeason()) {
-    // During basketball season: get current season games
-    console.log(`Basketball season active - fetching season ${currentSeason}`);
-    allGames = await fetchKansasSchedule(currentSeason);
+  if (isInSeason(sport)) {
+    // During season: get current season games
+    console.log(`${sport} season active - fetching season ${currentSeason}`);
+    allGames = await fetchKansasSchedule(sport, currentSeason);
   } else {
     // Off-season: get previous season games
-    console.log(`Off-season - fetching previous season ${currentSeason}`);
-    allGames = await fetchKansasSchedule(currentSeason);
+    console.log(`${sport} off-season - fetching previous season ${currentSeason}`);
+    allGames = await fetchKansasSchedule(sport, currentSeason);
     
     // If no games found, try previous season
     if (allGames.length === 0) {
       console.log(`No games found for ${currentSeason}, trying ${currentSeason - 1}`);
-      allGames = await fetchKansasSchedule(currentSeason - 1);
+      allGames = await fetchKansasSchedule(sport, currentSeason - 1);
     }
   }
 
@@ -176,39 +226,44 @@ async function updateSchedule() {
 
   console.log(`Completed games found: ${completedGames.length}`);
 
+  const updatedState = { lastUpdated: new Date() };
+
   if (completedGames.length > 0) {
-    gameState.lastGame = completedGames[completedGames.length - 1];
-    console.log(`Last game: ${gameState.lastGame.date} - ${gameState.lastGame.gameState}`);
+    updatedState.lastGame = completedGames[completedGames.length - 1];
+    console.log(`Last ${sport} game: ${updatedState.lastGame.date} - ${updatedState.lastGame.gameState}`);
   }
 
-  // Only look for upcoming games during basketball season
-  if (isBasketballSeason()) {
+  // Only look for upcoming games during season
+  if (isInSeason(sport)) {
     const upcomingGames = allGames.filter(g =>
       g.gameState !== 'final' && new Date(g.startTimeEpoch * 1000) > now
     );
 
     if (upcomingGames.length > 0) {
-      gameState.nextGame = upcomingGames[0];
-      console.log(`Next game: ${gameState.nextGame.date}`);
+      updatedState.nextGame = upcomingGames[0];
+      console.log(`Next ${sport} game: ${updatedState.nextGame.date}`);
     } else {
-      gameState.nextGame = null;
-      console.log('No upcoming games found');
+      updatedState.nextGame = null;
+      console.log(`No upcoming ${sport} games found`);
     }
   } else {
-    gameState.nextGame = null;
-    console.log('Off-season: No upcoming game search');
+    updatedState.nextGame = null;
+    console.log(`${sport} off-season: No upcoming game search`);
   }
 
-  gameState.lastUpdated = new Date();
+  setSportState(sport, updatedState);
 }
 
-async function checkGameResult() {
+async function checkGameResult(sport = 'basketball') {
+  const gameState = getSportState(sport);
+  const config = getSportConfig(sport);
+  
   if (!gameState.nextGame) return;
 
   try {
     // For ESPN API, we need to fetch the specific game details
-    const gameUrl = `${ESPN_API}/summary?event=${gameState.nextGame.gameID}`;
-    console.log(`Checking game result: ${gameUrl}`);
+    const gameUrl = `${config.apiBase}/summary?event=${gameState.nextGame.gameID}`;
+    console.log(`Checking ${sport} game result: ${gameUrl}`);
     
     const response = await axios.get(gameUrl);
     const gameData = response.data;
@@ -221,7 +276,7 @@ async function checkGameResult() {
         console.log('Game finished! Updating result...');
 
         // Update the game state to final
-        gameState.lastGame = {
+        const lastGame = {
           ...gameState.nextGame,
           gameState: 'final'
         };
@@ -230,34 +285,40 @@ async function checkGameResult() {
         if (competition.competitors) {
           for (const competitor of competition.competitors) {
             if (competitor.homeAway === 'home') {
-              gameState.lastGame.home.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
-              gameState.lastGame.home.winner = competitor.winner || false;
+              lastGame.home.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              lastGame.home.winner = competitor.winner || false;
             } else {
-              gameState.lastGame.away.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
-              gameState.lastGame.away.winner = competitor.winner || false;
+              lastGame.away.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              lastGame.away.winner = competitor.winner || false;
             }
           }
         }
 
-        gameState.nextGame = null;
-        gameState.isMonitoring = false;
+        setSportState(sport, {
+          lastGame: lastGame,
+          nextGame: null,
+          isMonitoring: false
+        });
 
-        setTimeout(() => updateSchedule(), 5000);
+        setTimeout(() => updateSchedule(sport), 5000);
       } else {
         // Update live game info
+        const nextGame = { ...gameState.nextGame };
         if (competition.competitors) {
           for (const competitor of competition.competitors) {
             if (competitor.homeAway === 'home') {
-              gameState.nextGame.home.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              nextGame.home.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
             } else {
-              gameState.nextGame.away.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              nextGame.away.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
             }
           }
         }
         
         if (status && status.type.name === 'STATUS_IN_PROGRESS') {
-          gameState.nextGame.gameState = 'in_progress';
+          nextGame.gameState = 'in_progress';
         }
+        
+        setSportState(sport, { nextGame });
       }
     }
   } catch (error) {
@@ -268,24 +329,27 @@ async function checkGameResult() {
   }
 }
 
-function startGameMonitoring() {
+function startGameMonitoring(sport = 'basketball') {
+  const gameState = getSportState(sport);
+  
   if (!gameState.nextGame || gameState.isMonitoring) return;
 
   const gameTime = new Date(gameState.nextGame.startTimeEpoch * 1000);
   const now = new Date();
 
   if (now >= gameTime) {
-    console.log('Starting game monitoring...');
-    gameState.isMonitoring = true;
+    console.log(`Starting ${sport} game monitoring...`);
+    setSportState(sport, { isMonitoring: true });
 
-    checkGameResult();
+    checkGameResult(sport);
 
     const monitorInterval = setInterval(() => {
-      if (!gameState.isMonitoring) {
+      const currentState = getSportState(sport);
+      if (!currentState.isMonitoring) {
         clearInterval(monitorInterval);
         return;
       }
-      checkGameResult();
+      checkGameResult(sport);
     }, 5 * 60 * 1000); // 5 minutes
   }
 }
@@ -294,8 +358,16 @@ app.get('/about', (req, res) => {
   res.sendFile(__dirname + '/public/about.html');
 });
 
+app.get('/football', (req, res) => {
+  res.sendFile(__dirname + '/public/football.html');
+});
+
 app.get('/api/status', async (req, res) => {
-  startGameMonitoring();
+  const sport = req.query.sport || 'basketball';
+  const config = getSportConfig(sport);
+  const gameState = getSportState(sport);
+  
+  startGameMonitoring(sport);
   let result = {
     didWin: null,
     scoreLink: null,
@@ -349,22 +421,32 @@ app.get('/api/status', async (req, res) => {
     const prefix = result.didWin ? 'W' : 'L';
     result.scoreLink = {
       text: `${prefix} ${kansasScore}-${opponentScore}`,
-      url: `https://www.espn.com/mens-college-basketball/game/_/gameId/${gameState.lastGame.gameID}`
+      url: `https://www.espn.com/${config.espnUrlPrefix}/game/_/gameId/${gameState.lastGame.gameID}`
     };
   }
 
   res.json(result);
 });
 
+// Basketball schedule updates
 cron.schedule('0 8 * * *', () => {
-  updateSchedule();
+  updateSchedule('basketball');
 });
 
+// Football schedule updates
+cron.schedule('0 9 * * *', () => {
+  updateSchedule('football');
+});
+
+// Game monitoring for both sports
 cron.schedule('*/5 * * * *', () => {
-  startGameMonitoring();
+  startGameMonitoring('basketball');
+  startGameMonitoring('football');
 });
 
-updateSchedule();
+// Initialize both sports
+updateSchedule('basketball');
+updateSchedule('football');
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
