@@ -231,6 +231,20 @@ async function updateSchedule(sport = 'basketball') {
   if (completedGames.length > 0) {
     updatedState.lastGame = completedGames[completedGames.length - 1];
     console.log(`Last ${sport} game: ${updatedState.lastGame.date} - ${updatedState.lastGame.gameState}`);
+  } else {
+    // No completed games in current season, try previous season
+    console.log(`No completed games found in current season ${currentSeason}, trying previous season ${currentSeason - 1}`);
+    const previousSeasonGames = await fetchKansasSchedule(sport, currentSeason - 1);
+    const previousCompletedGames = previousSeasonGames.filter(g =>
+      g.gameState === 'final' && new Date(g.startTimeEpoch * 1000) < now
+    );
+    
+    if (previousCompletedGames.length > 0) {
+      updatedState.lastGame = previousCompletedGames[previousCompletedGames.length - 1];
+      console.log(`Last ${sport} game from previous season: ${updatedState.lastGame.date} - ${updatedState.lastGame.gameState}`);
+    } else {
+      console.log(`No completed ${sport} games found in previous season either`);
+    }
   }
 
   // Only look for upcoming games during season

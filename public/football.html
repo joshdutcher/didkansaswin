@@ -6,7 +6,7 @@
 </head>
 <body>
     <div id=middle>
-        <p id="status" class=""> Loading... </p>
+        <p id="status" class=""> </p>
         <p id="score"> </p>
         <p id="nav-links"><a href="/">basketball</a> | <a href="/about">about</a></p>
     </div>
@@ -35,9 +35,9 @@
                     scoreP.innerHTML = `<a href="${data.scoreLink.url}" target="_blank">${data.scoreLink.text}</a>`;
                     isLive = false;
                 } else {
-                    // Loading/Error state
+                    // No data available - should not happen with proper server implementation
                     statusP.className = 'notyet';
-                    statusP.textContent = 'LOADING...';
+                    statusP.textContent = '';
                     scoreP.textContent = '';
                     isLive = false;
                 }
