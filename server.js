@@ -5,7 +5,9 @@ const cron = require('node-cron');
 const app = express();
 const PORT = process.env.PORT || 3050;
 
-app.use(express.static('public'));
+// Configure EJS templating
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/public/templates');
 
 // Dual sport state management
 let basketballState = {
@@ -368,12 +370,28 @@ function startGameMonitoring(sport = 'basketball') {
   }
 }
 
+// Route handlers for templated pages
+app.get('/', (req, res) => {
+  res.render('index', {
+    title: 'Did Kansas Win?',
+    canonicalUrl: 'https://www.didkansaswin.com/',
+    sport: 'basketball'
+  });
+});
+
 app.get('/about', (req, res) => {
-  res.sendFile(__dirname + '/public/about.html');
+  res.render('about', {
+    title: 'About - Did Kansas Win?',
+    canonicalUrl: 'https://www.didkansaswin.com/about'
+  });
 });
 
 app.get('/football', (req, res) => {
-  res.sendFile(__dirname + '/public/football.html');
+  res.render('football', {
+    title: 'Did Kansas Win? - Football',
+    canonicalUrl: 'https://www.didkansaswin.com/football',
+    sport: 'football'
+  });
 });
 
 app.get('/api/status', async (req, res) => {
@@ -457,6 +475,9 @@ cron.schedule('*/5 * * * *', () => {
   startGameMonitoring('basketball');
   startGameMonitoring('football');
 });
+
+// Serve static files (CSS, images, etc.) - place after routes to avoid conflicts
+app.use(express.static('public'));
 
 // Initialize both sports
 updateSchedule('basketball');
