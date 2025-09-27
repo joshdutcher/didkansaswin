@@ -47,10 +47,37 @@
 
         checkStatus();
 
-        // Check every 30 seconds if live, otherwise every 5 minutes
-        setInterval(() => {
-            checkStatus();
-        }, isLive ? 30000 : 300000);
+        // Sync with backend ESPN API calls (every 5 minutes)
+        // Poll 30 seconds after the 5-minute mark to get fresh data
+        function scheduleNextCheck() {
+            const now = new Date();
+            const minutesPastHour = now.getMinutes();
+            const secondsPastMinute = now.getSeconds();
+
+            // Calculate seconds until next 5-minute mark + 30 seconds
+            // (5-minute marks: :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)
+            const nextFiveMinuteMark = Math.ceil(minutesPastHour / 5) * 5;
+            const targetMinute = nextFiveMinuteMark % 60;
+            const targetSecond = 30; // 30 seconds after the ESPN API call
+
+            let msUntilTarget;
+            if (minutesPastHour < targetMinute || (minutesPastHour === targetMinute && secondsPastMinute < targetSecond)) {
+                // Target is later this hour
+                msUntilTarget = ((targetMinute - minutesPastHour) * 60 + (targetSecond - secondsPastMinute)) * 1000;
+            } else {
+                // Target is next hour or next 5-minute cycle
+                const minutesUntilNext = (65 - minutesPastHour + targetMinute) % 60;
+                msUntilTarget = (minutesUntilNext * 60 + (targetSecond - secondsPastMinute)) * 1000;
+            }
+
+            setTimeout(() => {
+                checkStatus();
+                // Then continue with regular 5-minute intervals
+                setInterval(checkStatus, 5 * 60 * 1000);
+            }, msUntilTarget);
+        }
+
+        scheduleNextCheck();
     </script>
 </body>
 </html>
