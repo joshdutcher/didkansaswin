@@ -21,7 +21,7 @@
                 if (data.isLive && data.liveScore) {
                     // Live game in progress
                     statusP.className = 'notyet';
-                    statusP.textContent = 'LIVE';
+                    statusP.textContent = 'NOT YET';
                     scoreP.textContent = data.liveScore;
                     isLive = true;
                 } else if (data.didWin !== null && data.scoreLink) {

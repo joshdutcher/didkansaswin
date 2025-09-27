@@ -142,6 +142,8 @@ async function fetchKansasSchedule(sport, season) {
             }
           }
 
+          console.log(`Game ${game.id} on ${gameDate.toISOString().split('T')[0]}: ${gameState}`);
+
           // Extract teams
           let home = null;
           let away = null;
@@ -249,18 +251,27 @@ async function updateSchedule(sport = 'basketball') {
     }
   }
 
-  // Only look for upcoming games during season
+  // Look for live or upcoming games during season
   if (isInSeason(sport)) {
-    const upcomingGames = allGames.filter(g =>
-      g.gameState !== 'final' && new Date(g.startTimeEpoch * 1000) > now
-    );
+    // First check for live games
+    const liveGames = allGames.filter(g => g.gameState === 'in_progress');
 
-    if (upcomingGames.length > 0) {
-      updatedState.nextGame = upcomingGames[0];
-      console.log(`Next ${sport} game: ${updatedState.nextGame.date}`);
+    if (liveGames.length > 0) {
+      updatedState.nextGame = liveGames[0];
+      console.log(`Live ${sport} game in progress: ${updatedState.nextGame.date}`);
     } else {
-      updatedState.nextGame = null;
-      console.log(`No upcoming ${sport} games found`);
+      // If no live games, look for upcoming games
+      const upcomingGames = allGames.filter(g =>
+        g.gameState !== 'final' && new Date(g.startTimeEpoch * 1000) > now
+      );
+
+      if (upcomingGames.length > 0) {
+        updatedState.nextGame = upcomingGames[0];
+        console.log(`Next ${sport} game: ${updatedState.nextGame.date}`);
+      } else {
+        updatedState.nextGame = null;
+        console.log(`No upcoming ${sport} games found`);
+      }
     }
   } else {
     updatedState.nextGame = null;
@@ -273,21 +284,24 @@ async function updateSchedule(sport = 'basketball') {
 async function checkGameResult(sport = 'basketball') {
   const gameState = getSportState(sport);
   const config = getSportConfig(sport);
-  
+
   if (!gameState.nextGame) return;
 
   try {
     // For ESPN API, we need to fetch the specific game details
     const gameUrl = `${config.apiBase}/summary?event=${gameState.nextGame.gameID}`;
     console.log(`Checking ${sport} game result: ${gameUrl}`);
-    
+
     const response = await axios.get(gameUrl);
     const gameData = response.data;
+    console.log(`Game data status: ${response.status}`);
 
     if (gameData.header && gameData.header.competitions && gameData.header.competitions[0]) {
       const competition = gameData.header.competitions[0];
       const status = competition.status;
-      
+
+      console.log(`Game status: ${status ? status.type.name : 'unknown'}, completed: ${status ? status.type.completed : 'unknown'}`);
+
       if (status && status.type.completed) {
         console.log('Game finished! Updating result...');
 
@@ -319,21 +333,27 @@ async function checkGameResult(sport = 'basketball') {
         setTimeout(() => updateSchedule(sport), 5000);
       } else {
         // Update live game info
+        console.log(`Updating live game scores. Competitors found: ${competition.competitors ? competition.competitors.length : 0}`);
         const nextGame = { ...gameState.nextGame };
+
         if (competition.competitors) {
           for (const competitor of competition.competitors) {
+            const score = competitor.score || '0';
+            console.log(`Team ${competitor.team.displayName} (${competitor.homeAway}): ${score}`);
+
             if (competitor.homeAway === 'home') {
-              nextGame.home.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              nextGame.home.score = score;
             } else {
-              nextGame.away.score = competitor.score ? competitor.score.displayValue || competitor.score.value || '0' : '0';
+              nextGame.away.score = score;
             }
           }
         }
-        
+
         if (status && status.type.name === 'STATUS_IN_PROGRESS') {
           nextGame.gameState = 'in_progress';
         }
-        
+
+        console.log(`Updated game: ${nextGame.away?.names?.seo || 'Away'} ${nextGame.away?.score || '0'} - ${nextGame.home?.names?.seo || 'Home'} ${nextGame.home?.score || '0'}`);
         setSportState(sport, { nextGame });
       }
     }
