@@ -394,6 +394,7 @@ function startGameMonitoring(sport = 'basketball') {
 
     checkGameResult(sport);
 
+    const updateInterval = sport === 'basketball' ? 2 * 60 * 1000 : 5 * 60 * 1000;
     const monitorInterval = setInterval(() => {
       const currentState = getSportState(sport);
       if (!currentState.isMonitoring) {
@@ -401,7 +402,7 @@ function startGameMonitoring(sport = 'basketball') {
         return;
       }
       checkGameResult(sport);
-    }, 5 * 60 * 1000); // 5 minutes
+    }, updateInterval);
   }
 }
 
