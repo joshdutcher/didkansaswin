@@ -61,21 +61,21 @@ function getCurrentSeason(sport = 'basketball') {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-  
+
   if (sport === 'football') {
     // Football season: Aug-Jan spans calendar years
-    // ESPN API uses the starting year (2025 for 2025-26 season)
+    // ESPN API uses the STARTING year (2025 for 2025-26 season)
     if (month >= 8) {
-      return year;  // Aug-Dec: use current year
+      return year;  // Aug-Dec: use current year (starting year)
     }
-    return year - 1;  // Jan-July: use previous year
+    return year - 1;  // Jan-July: use previous year (starting year)
   } else {
-    // Basketball season: Nov-Apr spans calendar years  
-    // ESPN API uses the starting year (2024 for 2024-25 season)
+    // Basketball season: Nov-Apr spans calendar years
+    // ESPN API uses the ENDING year (2026 for 2025-26 season)
     if (month >= 11) {
-      return year;  // Nov-Dec: use current year
+      return year + 1;  // Nov-Dec: use next year (ending year)
     }
-    return year - 1;  // Jan-Oct: use previous year
+    return year;  // Jan-Apr: use current year (ending year), May-Oct: use current year (previous season's ending year)
   }
 }
 
@@ -253,24 +253,39 @@ async function updateSchedule(sport = 'basketball') {
 
   // Look for live or upcoming games during season
   if (isInSeason(sport)) {
-    // First check for live games
+    // First check for live games from schedule API
     const liveGames = allGames.filter(g => g.gameState === 'in_progress');
 
     if (liveGames.length > 0) {
       updatedState.nextGame = liveGames[0];
       console.log(`Live ${sport} game in progress: ${updatedState.nextGame.date}`);
     } else {
-      // If no live games, look for upcoming games
-      const upcomingGames = allGames.filter(g =>
-        g.gameState !== 'final' && new Date(g.startTimeEpoch * 1000) > now
+      // Check for games that might be live but showing as scheduled
+      // (schedule API can have stale data - check games within 6 hours of now)
+      const sixHoursAgo = now.getTime() - (6 * 60 * 60 * 1000);
+      const recentGames = allGames.filter(g =>
+        g.gameState === 'scheduled' &&
+        new Date(g.startTimeEpoch * 1000) >= new Date(sixHoursAgo) &&
+        new Date(g.startTimeEpoch * 1000) <= now
       );
 
-      if (upcomingGames.length > 0) {
-        updatedState.nextGame = upcomingGames[0];
-        console.log(`Next ${sport} game: ${updatedState.nextGame.date}`);
+      if (recentGames.length > 0) {
+        // Found a game that started recently - it might be live
+        updatedState.nextGame = recentGames[0];
+        console.log(`Potential live ${sport} game (needs verification): ${updatedState.nextGame.date}`);
       } else {
-        updatedState.nextGame = null;
-        console.log(`No upcoming ${sport} games found`);
+        // If no recent games, look for upcoming games
+        const upcomingGames = allGames.filter(g =>
+          g.gameState !== 'final' && new Date(g.startTimeEpoch * 1000) > now
+        );
+
+        if (upcomingGames.length > 0) {
+          updatedState.nextGame = upcomingGames[0];
+          console.log(`Next ${sport} game: ${updatedState.nextGame.date}`);
+        } else {
+          updatedState.nextGame = null;
+          console.log(`No upcoming ${sport} games found`);
+        }
       }
     }
   } else {
