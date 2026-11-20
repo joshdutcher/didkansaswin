@@ -1,7 +1,24 @@
 /* Global Styles */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    display: grid;
+    min-height: 100vh;
+    min-height: 100svh;
+    margin: 0;
+    padding:
+        max(1.25rem, env(safe-area-inset-top))
+        max(1.25rem, env(safe-area-inset-right))
+        max(1.25rem, env(safe-area-inset-bottom))
+        max(1.25rem, env(safe-area-inset-left));
+    place-items: center;
+}
+
 #middle {
+    width: min(100%, 72rem);
     text-align: center;
-    margin-top: 15%;
 }
 
 p {
@@ -9,22 +26,40 @@ p {
 }
 
 /* Game Status Styles */
-p.yes {
-    font-size: 120pt;
+p.yes,
+p.no,
+p.notyet {
+    margin: 0;
+    font-size: clamp(5rem, min(32vw, 28vh), 16rem);
     font-weight: bold;
-    color: green;
+    line-height: 0.86;
+}
+
+p.yes {
+    color: #0051BA;
 }
 
 p.no {
-    font-size: 120pt;
-    font-weight: bold;
-    color: red;
+    color: #E8000D;
 }
 
 p.notyet {
-    font-size: 120pt;
-    font-weight: bold;
-    color: #FFD700;
+    font-size: clamp(3.25rem, min(19vw, 20vh), 10rem);
+    white-space: nowrap;
+    color: #F2A900;
+}
+
+#score {
+    margin: clamp(1.25rem, 3vh, 2rem) 0 clamp(2rem, 6vh, 3.5rem);
+    font-size: clamp(1.15rem, 4vw, 1.6rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+#nav-links {
+    font-size: clamp(0.95rem, 3vw, 1.05rem);
+    font-weight: 600;
 }
 
 /* Navigation Links */
@@ -51,19 +86,14 @@ p.notyet {
 
 /* Responsive Design */
 @media (max-width: 600px) {
-
-    p.yes,
-    p.no,
-    p.notyet {
-        font-size: 80pt;
-    }
-
     .content {
         font-size: 16pt;
         max-width: 90%;
     }
+}
 
-    #middle {
-        margin-top: 10%;
+@media (max-height: 30rem) and (orientation: landscape) {
+    #score {
+        margin-block: 1rem 1.25rem;
     }
 }
